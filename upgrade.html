@@ -1,0 +1,546 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Go Wildcard虚拟卡</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+            overflow-x: hidden;
+        }
+
+        /* 背景动画粒子 */
+        .background-particles {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: -1;
+        }
+
+        .particle {
+            position: absolute;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 50%;
+            animation: float 6s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0px) rotate(0deg); }
+            50% { transform: translateY(-20px) rotate(180deg); }
+        }
+
+        .container {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            border-radius: 24px;
+            padding: 40px;
+            box-shadow: 
+                0 20px 40px rgba(0, 0, 0, 0.1),
+                0 0 0 1px rgba(255, 255, 255, 0.2);
+            width: 100%;
+            max-width: 420px;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .container::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+            transition: left 0.5s;
+        }
+
+        .container:hover {
+            transform: translateY(-5px);
+            box-shadow: 
+                0 30px 60px rgba(0, 0, 0, 0.15),
+                0 0 0 1px rgba(255, 255, 255, 0.3);
+        }
+
+        .container:hover::before {
+            left: 100%;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            font-size: 28px;
+            font-weight: 700;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 10px;
+            letter-spacing: -0.5px;
+        }
+
+        .header .subtitle {
+            color: #64748b;
+            font-size: 14px;
+            font-weight: 400;
+        }
+
+        #loadingText {
+            font-size: 16px;
+            color: #475569;
+            margin-bottom: 25px;
+            font-weight: 500;
+            text-align: center;
+        }
+
+        .countdown-section {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-bottom: 30px;
+        }
+
+        .countdown {
+            position: relative;
+            width: 160px;
+            height: 160px;
+            margin: 0 auto 20px;
+        }
+
+        .countdown canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.1));
+        }
+
+        .countdown .time {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            font-weight: 700;
+        }
+
+        .countdown .time span:first-child {
+            font-size: 48px;
+            color: #1e293b;
+            line-height: 1;
+        }
+
+        .countdown .time .secs-label {
+            font-size: 14px;
+            color: #94a3b8;
+            font-weight: 500;
+            margin-top: 4px;
+        }
+
+        .status-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: rgba(248, 250, 252, 0.8);
+            border-radius: 16px;
+            border: 1px solid rgba(226, 232, 240, 0.8);
+        }
+
+        .status-container .url-display {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            background: white;
+            border-radius: 12px;
+            border: 1px solid #e2e8f0;
+            max-width: 100%;
+        }
+
+        .status-container .url-icon {
+            width: 16px;
+            height: 16px;
+            opacity: 0.6;
+        }
+
+                 .status-container .connection-text {
+             color: #64748b;
+             font-size: 14px;
+             font-weight: 500;
+         }
+
+        .status-container .status {
+            color: #059669;
+            font-weight: 600;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .status-indicator {
+            width: 8px;
+            height: 8px;
+            background: #059669;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+
+        .btn {
+            display: block;
+            width: 100%;
+            padding: 16px 24px;
+            background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+            color: white;
+            text-decoration: none;
+            border-radius: 16px;
+            font-weight: 600;
+            font-size: 16px;
+            text-align: center;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+            border: none;
+            cursor: pointer;
+            margin-bottom: 20px;
+        }
+
+        .btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            transition: left 0.5s;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(59, 130, 246, 0.4);
+        }
+
+        .btn:hover::before {
+            left: 100%;
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .secure-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 12px;
+            color: #059669;
+            font-size: 14px;
+            font-weight: 500;
+            padding: 16px;
+            background: rgba(236, 253, 245, 0.8);
+            border-radius: 12px;
+            border: 1px solid rgba(167, 243, 208, 0.8);
+        }
+
+        .secure-container .secure-icon {
+            width: 20px;
+            height: 20px;
+            filter: hue-rotate(120deg);
+        }
+
+        .secure-container .text {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .secure-container .text .title {
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .secure-container .text .subtitle {
+            font-size: 12px;
+            opacity: 0.8;
+        }
+
+        /* 响应式设计 */
+        @media (max-width: 480px) {
+            .container {
+                padding: 30px 20px;
+                margin: 10px;
+            }
+
+            .header h1 {
+                font-size: 24px;
+            }
+
+            .countdown {
+                width: 140px;
+                height: 140px;
+            }
+
+            .countdown .time span:first-child {
+                font-size: 40px;
+            }
+        }
+
+        /* 加载动画 */
+        .loading-animation {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #3b82f6;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-left: 8px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* 成功动画 */
+        .success-animation {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #059669;
+            position: relative;
+            margin-left: 8px;
+        }
+
+        .success-animation::after {
+            content: '✓';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            font-size: 12px;
+            font-weight: bold;
+        }
+    </style>
+    <script>
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "https://hm.baidu.com/hm.js?2a75ebab26395c58e0c09e85ce692fb7";
+      var s = document.getElementsByTagName("script")[0]; 
+      s.parentNode.insertBefore(hm, s);
+    })();
+    </script>
+</head>
+<body>
+    <!-- 背景粒子动画 -->
+    <div class="background-particles" id="particles"></div>
+
+    <div class="container" id="mainContainer">
+        <div class="header">
+            <h1>🌈 Wildcard虚拟卡 🚀</h1>
+            <div class="subtitle">安全可靠的虚拟信用卡服务</div>
+        </div>
+        
+        <p id="loadingText">安全检测中<span class="loading-animation"></span></p>
+        
+        <div class="countdown-section">
+            <div class="countdown">
+                <canvas id="countdownCanvas" width="160" height="160"></canvas>
+                <div class="time" id="countdownTime">
+                    <span>5</span>
+                    <span class="secs-label">秒</span>
+                </div>
+            </div>
+        </div>
+        
+        <div class="status-container">
+            <div class="url-display">
+                <svg class="url-icon" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12,1L3,5V11C3,16.55 6.84,21.74 12,23C17.16,21.74 21,16.55 21,11V5L12,1M10,17L6,13L7.41,11.59L10,14.17L16.59,7.58L18,9L10,17Z"/>
+                </svg>
+                <span class="connection-text">正在验证安全连接</span>
+            </div>
+            <div id="statusContainer" style="display: none;">
+                <p id="statusText" class="status">
+                    <span class="status-indicator"></span>
+                    <span id="statusContent"></span>
+                </p>
+            </div>
+        </div>
+        
+        <button class="btn" id="redirectBtn">立即前往</button>
+
+        <div class="secure-container">
+            <svg class="secure-icon" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M12,1L3,5V11C3,16.55 6.84,21.74 12,23C17.16,21.74 21,16.55 21,11V5L12,1M10,17L6,13L7.41,11.59L10,14.17L16.59,7.58L18,9L10,17Z"/>
+            </svg>
+            <div class="text">
+                <div class="title">Secure</div>
+                <div class="subtitle">安全加密连接</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 创建背景粒子
+        function createParticles() {
+            const particles = document.getElementById('particles');
+            const particleCount = 15;
+            
+            for (let i = 0; i < particleCount; i++) {
+                const particle = document.createElement('div');
+                particle.className = 'particle';
+                
+                const size = Math.random() * 4 + 2;
+                particle.style.width = size + 'px';
+                particle.style.height = size + 'px';
+                particle.style.left = Math.random() * 100 + '%';
+                particle.style.top = Math.random() * 100 + '%';
+                particle.style.animationDelay = Math.random() * 6 + 's';
+                particle.style.animationDuration = (Math.random() * 3 + 3) + 's';
+                
+                particles.appendChild(particle);
+            }
+        }
+
+        const defaultCountdownTime = 3;
+        let countdown = defaultCountdownTime;
+        const countdownElement = document.getElementById('countdownTime');
+        const redirectBtn = document.getElementById('redirectBtn');
+        const statusTextElement = document.getElementById('statusText');
+        const statusContainer = document.getElementById('statusContainer');
+        const statusContent = document.getElementById('statusContent');
+                 const loadingTextElement = document.getElementById('loadingText');
+         const mainContainer = document.getElementById('mainContainer');
+         const targetUrl = 'https://bewildcard.com/i/GOGPT';
+
+        // 初始化倒计时显示
+        countdownElement.querySelector('span').textContent = countdown;
+
+        let jumpTime = 5;
+
+        // 测试链接耗时
+        let startTime = performance.now();
+        fetch(targetUrl, { method: 'HEAD', mode: 'no-cors' })
+            .then(() => {
+                let loadTime = (performance.now() - startTime) / 1000;
+                statusContent.textContent = `检测成功 ${loadTime.toFixed(2)}s`;
+                loadingTextElement.innerHTML = '安全检测成功<span class="success-animation"></span>';
+                statusContainer.style.display = 'block';
+                jumpTime = 1.5;
+                setTimeout(() => {
+                    window.location.href = targetUrl;
+                }, jumpTime * 1000);
+            })
+            .catch(() => {
+                statusContent.textContent = '连接成功 0.00s';
+                loadingTextElement.innerHTML = '安全检测成功<span class="success-animation"></span>';
+                statusContainer.style.display = 'block';
+                setTimeout(() => {
+                    window.location.href = targetUrl;
+                }, jumpTime * 1000);
+            });
+
+        // Canvas 绘制圆形倒计时
+        const canvas = document.getElementById('countdownCanvas');
+        const ctx = canvas.getContext('2d');
+        const centerX = canvas.width / 2;
+        const centerY = canvas.height / 2;
+        const radius = 70;
+        const lineWidth = 8;
+
+        function drawCountdown(remainingTime) {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // 绘制背景圆
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI);
+            ctx.strokeStyle = 'rgba(226, 232, 240, 0.3)';
+            ctx.lineWidth = lineWidth;
+            ctx.stroke();
+
+            // 绘制进度圆
+            const startAngle = -Math.PI / 2;
+            const endAngle = startAngle + (2 * Math.PI * (defaultCountdownTime - remainingTime)) / defaultCountdownTime;
+            
+            // 创建渐变
+            const gradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
+            gradient.addColorStop(0, '#3b82f6');
+            gradient.addColorStop(1, '#1d4ed8');
+            
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, radius, startAngle, endAngle);
+            ctx.strokeStyle = gradient;
+            ctx.lineWidth = lineWidth;
+            ctx.lineCap = 'round';
+            ctx.stroke();
+
+            // 更新倒计时数字
+            countdownElement.querySelector('span').textContent = remainingTime;
+        }
+
+        // 倒计时函数
+        const countdownTimer = setInterval(() => {
+            countdown--;
+            drawCountdown(countdown);
+            if (countdown <= 0) {
+                clearInterval(countdownTimer);
+            }
+        }, 1000);
+
+        // 初始化
+        createParticles();
+        drawCountdown(countdown);
+
+        // 事件监听器
+        redirectBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            window.location.href = targetUrl;
+        });
+
+        mainContainer.addEventListener('click', () => {
+            window.location.href = targetUrl;
+        });
+
+        // 设置跳转时间
+        setTimeout(() => {
+            window.location.href = targetUrl;
+        }, jumpTime * 1000);
+    </script>
+</body>
+</html>
