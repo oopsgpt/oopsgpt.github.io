@@ -1,0 +1,24 @@
+User-agent: *
+Allow: /
+
+# 禁止抓取特定文件和目录
+Disallow: /upgrade.html
+Disallow: /admin/
+Disallow: /private/
+Disallow: /*.json$
+Disallow: /*?*
+Disallow: /manifest.json 
+
+# 允许抓取重要资源
+Allow: /css/
+Allow: /js/
+Allow: /img/
+Allow: /fonts/
+
+# Sitemap位置
+Sitemap: https://chatgptgogogo.com/sitemap.xml
+Sitemap: https://chatgptgogogo.com/baidusitemap.xml
+Sitemap: https://chatgptgogogo.com/atom.xml
+
+# 爬虫延迟（可选）
+Crawl-delay: 1 
